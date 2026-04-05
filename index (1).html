@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>다이어트 퀘스트</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --bg2: #f5f5f3;
+      --bg3: #efefed;
+      --text: #1a1a1a;
+      --text2: #666660;
+      --text3: #999994;
+      --border: rgba(0,0,0,0.12);
+      --border2: rgba(0,0,0,0.22);
+      --green: #639922;
+      --green-light: #EAF3DE;
+      --green-dark: #3B6D11;
+      --green-text: #174304;
+      --amber: #BA7517;
+      --amber-light: #FAEEDA;
+      --amber-text: #633806;
+      --red: #A32D2D;
+      --red-light: #FCEBEB;
+      --radius: 10px;
+      --radius-lg: 14px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1c1c1a;
+        --bg2: #252523;
+        --bg3: #2e2e2b;
+        --text: #f0f0ee;
+        --text2: #a0a09a;
+        --text3: #666660;
+        --border: rgba(255,255,255,0.1);
+        --border2: rgba(255,255,255,0.2);
+        --green: #7ab832;
+        --green-light: #1a2d08;
+        --green-dark: #97C459;
+        --green-text: #C0DD97;
+        --amber-light: #2a1e08;
+        --amber-text: #FAC775;
+        --red-light: #2a0a0a;
+      }
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Pretendard', 'Apple SD Gothic Neo', sans-serif;
+      background: var(--bg3);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    .app {
+      max-width: 480px;
+      margin: 0 auto;
+      min-height: 100vh;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header { padding: 20px 20px 0; background: var(--bg); }
+    .header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .header-title { font-size: 20px; font-weight: 700; color: var(--text); }
+    .header-sub { font-size: 13px; color: var(--text2); margin-top: 2px; }
+    .streak-badge {
+      display: flex; align-items: center; gap: 5px;
+      background: var(--amber-light); border-radius: 20px;
+      padding: 6px 14px; font-size: 13px; color: var(--amber-text); font-weight: 600;
+    }
+
+    .tabs { display: flex; border-bottom: 0.5px solid var(--border); padding: 0 20px; }
+    .tab {
+      flex: 1; padding: 12px 0; font-size: 13px; cursor: pointer;
+      border: none; background: none; color: var(--text2);
+      border-bottom: 2px solid transparent; margin-bottom: -1px;
+      transition: all 0.15s; font-weight: 500; font-family: inherit;
+    }
+    .tab.active { color: var(--text); border-bottom-color: var(--text); }
+    .tab:hover:not(.active) { color: var(--text); }
+
+    .section { display: none; flex: 1; overflow-y: auto; padding: 20px; }
+    .section.active { display: block; }
+
+    .stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 18px; }
+    .stat-card { background: var(--bg2); border-radius: var(--radius); padding: 12px; }
+    .stat-label { font-size: 11px; color: var(--text3); margin-bottom: 4px; font-weight: 500; letter-spacing: 0.03em; }
+    .stat-value { font-size: 20px; font-weight: 700; color: var(--text); }
+    .stat-sub { font-size: 11px; color: var(--text3); margin-top: 3px; }
+
+    .xp-wrap { margin-bottom: 20px; }
+    .xp-labels { display: flex; justify-content: space-between; font-size: 12px; color: var(--text2); margin-bottom: 6px; }
+    .xp-bar { height: 8px; background: var(--bg2); border-radius: 4px; overflow: hidden; }
+    .xp-fill { height: 100%; background: var(--green); border-radius: 4px; transition: width 0.5s cubic-bezier(0.4,0,0.2,1); }
+
+    .section-label { font-size: 11px; font-weight: 600; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 10px; }
+
+    .quest-list { display: flex; flex-direction: column; gap: 8px; }
+    .quest-item {
+      background: var(--bg); border: 0.5px solid var(--border);
+      border-radius: var(--radius); padding: 13px 14px;
+      display: flex; align-items: center; gap: 12px;
+      transition: all 0.15s; user-select: none;
+    }
+    .quest-item:hover { border-color: var(--border2); background: var(--bg2); }
+    .quest-item.done { opacity: 0.5; }
+    .quest-item.done .quest-name { text-decoration: line-through; }
+    .quest-check {
+      width: 22px; height: 22px; border-radius: 50%;
+      border: 1.5px solid var(--border2);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; font-size: 12px; cursor: pointer;
+      transition: all 0.2s;
+    }
+    .quest-item.done .quest-check { background: var(--green); border-color: var(--green); color: white; }
+    .quest-emoji { font-size: 20px; flex-shrink: 0; }
+    .quest-info { flex: 1; min-width: 0; cursor: pointer; }
+    .quest-name { font-size: 14px; font-weight: 600; color: var(--text); }
+    .quest-desc { font-size: 11px; color: var(--text3); margin-top: 2px; }
+    .quest-xp {
+      font-size: 12px; font-weight: 600; color: var(--green-dark);
+      background: var(--green-light); padding: 3px 9px; border-radius: 20px; flex-shrink: 0;
+    }
+    .quest-delete {
+      width: 24px; height: 24px; border-radius: 50%; border: none;
+      background: none; color: var(--text3); cursor: pointer; font-size: 18px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      transition: all 0.15s; line-height: 1;
+    }
+    .quest-delete:hover { background: var(--red-light); color: var(--red); }
+
+    .add-quest-btn {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 12px 14px; border: 1.5px dashed var(--border2);
+      border-radius: var(--radius); cursor: pointer;
+      color: var(--text2); font-size: 14px; margin-top: 8px;
+      background: none; width: 100%; font-family: inherit;
+      transition: all 0.15s;
+    }
+    .add-quest-btn:hover { border-color: var(--green); color: var(--green); background: var(--green-light); }
+
+    .add-quest-form {
+      display: none; background: var(--bg2); border-radius: var(--radius);
+      padding: 14px; margin-top: 8px; flex-direction: column; gap: 10px;
+    }
+    .add-quest-form.open { display: flex; }
+    .add-quest-form input, .add-quest-form select {
+      padding: 10px 12px; border: 0.5px solid var(--border2);
+      border-radius: var(--radius); background: var(--bg);
+      color: var(--text); font-size: 14px; outline: none; font-family: inherit; width: 100%;
+    }
+    .add-quest-form input:focus { border-color: var(--green); }
+    .form-row { display: flex; gap: 8px; }
+    .form-row select { flex: 1; }
+    .form-row button {
+      flex: 1; padding: 10px; border: none; border-radius: var(--radius);
+      font-size: 14px; cursor: pointer; font-weight: 600; font-family: inherit;
+    }
+    .btn-confirm { background: var(--green); color: white; }
+    .btn-cancel { background: var(--bg3); color: var(--text2); }
+
+    .all-done {
+      display: none; text-align: center; padding: 24px 20px;
+      background: var(--green-light); border-radius: var(--radius-lg); margin-top: 12px;
+    }
+    .all-done-emoji { font-size: 28px; margin-bottom: 8px; }
+    .all-done-title { font-weight: 700; color: var(--green-text); font-size: 16px; }
+    .all-done-sub { font-size: 13px; color: var(--green-dark); margin-top: 4px; }
+
+    .weight-input-row { display: flex; gap: 10px; margin-bottom: 20px; }
+    .weight-input-row input {
+      flex: 1; padding: 12px 14px; font-size: 16px;
+      border: 0.5px solid var(--border2); border-radius: var(--radius);
+      background: var(--bg); color: var(--text); outline: none; font-family: inherit;
+    }
+    .weight-input-row input:focus { border-color: var(--green); }
+    .weight-input-row button {
+      padding: 12px 20px; background: var(--text); color: var(--bg);
+      border: none; border-radius: var(--radius); font-size: 14px;
+      cursor: pointer; font-weight: 600; font-family: inherit;
+    }
+    canvas { width: 100%; display: block; border-radius: var(--radius); }
+    .weight-history { display: flex; flex-direction: column; gap: 6px; margin-top: 16px; }
+    .weight-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 14px; background: var(--bg2); border-radius: var(--radius); font-size: 14px;
+    }
+    .w-date { color: var(--text2); font-size: 13px; }
+    .w-val { font-weight: 700; }
+    .w-diff { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 12px; }
+    .w-up { color: var(--red); background: var(--red-light); }
+    .w-down { color: var(--green-dark); background: var(--green-light); }
+
+    .quick-prompts { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+    .quick-btn {
+      padding: 7px 13px; background: var(--bg2);
+      border: 0.5px solid var(--border); border-radius: 20px;
+      font-size: 12px; cursor: pointer; color: var(--text2);
+      transition: all 0.15s; font-family: inherit;
+    }
+    .quick-btn:hover { border-color: var(--border2); color: var(--text); }
+    .ai-box { border: 0.5px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+    .ai-messages {
+      min-height: 240px; max-height: 400px; overflow-y: auto;
+      padding: 16px; display: flex; flex-direction: column; gap: 10px;
+    }
+    .ai-msg { max-width: 88%; font-size: 14px; line-height: 1.55; }
+    .ai-msg.user {
+      align-self: flex-end; background: var(--bg2);
+      border-radius: 14px 14px 4px 14px; padding: 10px 14px; color: var(--text);
+    }
+    .ai-msg.bot {
+      align-self: flex-start; background: var(--green-light);
+      border-radius: 14px 14px 14px 4px; padding: 10px 14px; color: var(--green-text);
+    }
+    .ai-msg.bot.loading { color: var(--text3); font-style: italic; }
+    .ai-input-row { display: flex; border-top: 0.5px solid var(--border); }
+    .ai-input-row input {
+      flex: 1; padding: 13px 16px; border: none;
+      background: transparent; font-size: 14px;
+      color: var(--text); outline: none; font-family: inherit;
+    }
+    .ai-input-row button {
+      padding: 13px 18px; background: none; border: none;
+      border-left: 0.5px solid var(--border); cursor: pointer;
+      font-size: 13px; font-weight: 600; color: var(--green); font-family: inherit;
+    }
+    .ai-input-row button:hover { background: var(--bg2); }
+    .api-banner {
+      background: var(--amber-light); border-radius: var(--radius);
+      padding: 12px 14px; margin-bottom: 14px; font-size: 13px; color: var(--amber-text);
+    }
+    .api-banner-row { display: flex; gap: 8px; margin-top: 8px; }
+    .api-banner input {
+      flex: 1; border: 0.5px solid var(--amber); border-radius: 6px;
+      padding: 6px 10px; font-size: 13px; background: var(--bg); color: var(--text); outline: none;
+    }
+    .api-banner button {
+      padding: 6px 12px; background: var(--amber); color: white;
+      border: none; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: 600;
+    }
+    .api-key-saved {
+      display: none; color: var(--green-dark); font-size: 13px;
+      background: var(--green-light); padding: 8px 12px;
+      border-radius: var(--radius); margin-bottom: 14px;
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="header-top">
+      <div>
+        <div class="header-title">다이어트 퀘스트 🎮</div>
+        <div class="header-sub" id="date-label"></div>
+      </div>
+      <div class="streak-badge">🔥 <span id="streak-txt">오늘 시작!</span></div>
+    </div>
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('quest')">퀘스트</button>
+      <button class="tab" onclick="switchTab('weight')">체중</button>
+      <button class="tab" onclick="switchTab('ai')">AI 분석</button>
+    </div>
+  </div>
+
+  <!-- QUEST -->
+  <div class="section active" id="tab-quest">
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-label">현재 체중</div>
+        <div class="stat-value" id="cur-weight">--</div>
+        <div class="stat-sub">목표 52kg</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">레벨</div>
+        <div class="stat-value" id="level-txt">Lv.1</div>
+        <div class="stat-sub" id="level-title">초보 전사</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">오늘 XP</div>
+        <div class="stat-value" id="xp-today">0</div>
+        <div class="stat-sub" id="xp-total">/ 0</div>
+      </div>
+    </div>
+    <div class="xp-wrap">
+      <div class="xp-labels"><span>오늘의 진행도</span><span id="xp-pct">0%</span></div>
+      <div class="xp-bar"><div class="xp-fill" id="xp-fill" style="width:0%"></div></div>
+    </div>
+    <div class="section-label">오늘의 퀘스트</div>
+    <div class="quest-list" id="quest-list"></div>
+    <button class="add-quest-btn" onclick="toggleAddForm()">＋ 퀘스트 추가하기</button>
+    <div class="add-quest-form" id="add-form">
+      <input type="text" id="new-quest-name" placeholder="퀘스트 이름 (예: 런닝 30분)" maxlength="40" />
+      <input type="text" id="new-quest-desc" placeholder="설명 (선택사항)" maxlength="60" />
+      <div class="form-row">
+        <select id="new-quest-emoji">
+          <option value="🏃">🏃 운동</option>
+          <option value="🥗">🥗 식단</option>
+          <option value="💧">💧 수분</option>
+          <option value="😴">😴 수면</option>
+          <option value="🧘">🧘 마음챙김</option>
+          <option value="⭐">⭐ 기타</option>
+        </select>
+        <select id="new-quest-xp">
+          <option value="20">쉬움 +20 XP</option>
+          <option value="40" selected>보통 +40 XP</option>
+          <option value="70">어려움 +70 XP</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <button class="btn-confirm" onclick="addCustomQuest()">추가</button>
+        <button class="btn-cancel" onclick="toggleAddForm()">취소</button>
+      </div>
+    </div>
+    <div class="all-done" id="all-done">
+      <div class="all-done-emoji">🎉</div>
+      <div class="all-done-title">오늘 모든 퀘스트 완료!</div>
+      <div class="all-done-sub">스트릭 달성! 내일도 화이팅 🔥</div>
+    </div>
+  </div>
+
+  <!-- WEIGHT -->
+  <div class="section" id="tab-weight">
+    <div class="weight-input-row">
+      <input type="number" id="weight-in" placeholder="오늘 체중 (kg)" step="0.1" min="30" max="200" />
+      <button onclick="addWeight()">기록</button>
+    </div>
+    <div class="section-label">체중 변화</div>
+    <canvas id="weight-chart" height="160"></canvas>
+    <div class="weight-history" id="weight-history"></div>
+  </div>
+
+  <!-- AI -->
+  <div class="section" id="tab-ai">
+    <div class="api-banner" id="api-banner">
+      <div style="font-weight:600;">🔑 Anthropic API 키 입력</div>
+      <div style="font-size:12px;margin-top:3px;opacity:0.8;">console.anthropic.com 에서 무료 발급</div>
+      <div class="api-banner-row">
+        <input type="password" id="api-key-input" placeholder="sk-ant-..." />
+        <button onclick="saveApiKey()">저장</button>
+      </div>
+    </div>
+    <div class="api-key-saved" id="api-key-saved">✓ API 키 저장됨</div>
+    <div class="section-label">빠른 입력</div>
+    <div class="quick-prompts">
+      <button class="quick-btn" onclick="setPrompt('오늘 삼겹살 2인분에 소주 한병 마셨어')">🥩 삼겹살+소주</button>
+      <button class="quick-btn" onclick="setPrompt('편의점에서 김밥이랑 컵라면 먹었어')">🏪 편의점</button>
+      <button class="quick-btn" onclick="setPrompt('치킨 반마리랑 맥주 두캔 마셨어')">🍗 치킨+맥주</button>
+      <button class="quick-btn" onclick="setPrompt('샐러드랑 닭가슴살 먹었어')">🥗 건강 식단</button>
+      <button class="quick-btn" onclick="setPrompt('오늘 폭식했어. 어떻게 해야 해?')">😰 폭식했어</button>
+    </div>
+    <div class="ai-box">
+      <div class="ai-messages" id="ai-msgs">
+        <div class="ai-msg bot">안녕! 나는 너의 다이어트 AI 파트너야 🌱 오늘 뭐 먹었는지 말해줘. 칼로리 분석하고 오늘 퀘스트 상황이랑 연결해서 조언해줄게!</div>
+      </div>
+      <div class="ai-input-row">
+        <input type="text" id="ai-input" placeholder="오늘 먹은 거 말해봐..." onkeydown="if(event.key==='Enter')sendAI()" />
+        <button onclick="sendAI()">분석 →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DEFAULT_QUESTS = [
+  { id:'d1', name:'물 2L 마시기', desc:'수분 섭취 → 식욕 억제 & 대사 촉진 (NIH, 2010)', xp:40, emoji:'💧', deletable:false },
+  { id:'d2', name:'하루 500kcal 소모 운동', desc:'일관된 칼로리 소모가 체지방 감량의 핵심 (ACSM)', xp:80, emoji:'🔥', deletable:false },
+  { id:'d3', name:'단백질 체중×1.2g 이상 섭취', desc:'근손실 방지 & 포만감 유지 (Journal of Nutrition)', xp:60, emoji:'🥩', deletable:false },
+  { id:'d4', name:'가공식품 & 당분 음료 끊기', desc:'초가공식품은 체중 증가와 직결 (Monteiro, 2019)', xp:50, emoji:'🚫', deletable:false },
+  { id:'d5', name:'7시간 이상 수면', desc:'수면 부족 → 식욕 호르몬 폭발 (Sleep Journal, 2004)', xp:50, emoji:'😴', deletable:false },
+];
+
+const LEVELS = [
+  [0,'초보 전사'],[20,'건강 지망생'],[40,'의지의 한국인'],
+  [60,'다이어트 전사'],[80,'철의 의지'],[100,'전설의 몸짱']
+];
+
+const todayKey = () => new Date().toISOString().slice(0,10);
+
+function loadState() { try { return JSON.parse(localStorage.getItem('dq2_state')||'{}'); } catch { return {}; } }
+function saveState(s) { localStorage.setItem('dq2_state', JSON.stringify(s)); }
+
+let state = loadState();
+if (!state.weights) state.weights = [];
+if (!state.questDone) state.questDone = {};
+if (!state.questDoneDate) state.questDoneDate = '';
+if (!state.customQuests) state.customQuests = [];
+if (!state.streak) state.streak = 0;
+if (!state.yesterdayAllDone) state.yesterdayAllDone = false;
+
+if (state.questDoneDate !== todayKey()) {
+  const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
+  const yKey = yesterday.toISOString().slice(0,10);
+  if (state.questDoneDate === yKey && state.yesterdayAllDone) {
+    state.streak = (state.streak||0) + 1;
+  } else if (state.questDoneDate !== yKey) {
+    state.streak = 0;
+  }
+  state.questDone = {};
+  state.questDoneDate = todayKey();
+  state.yesterdayAllDone = false;
+  saveState(state);
+}
+
+let aiHistory = [];
+let apiKey = localStorage.getItem('dq_apikey') || '';
+
+function allQuests() { return [...DEFAULT_QUESTS, ...state.customQuests]; }
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    t.classList.toggle('active', ['quest','weight','ai'][i]===name);
+  });
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  if (name==='weight') { setTimeout(renderChart,50); renderHistory(); }
+}
+
+function getXP() { return allQuests().filter(q=>state.questDone[q.id]).reduce((s,q)=>s+q.xp,0); }
+function getTotalXP() { return allQuests().reduce((s,q)=>s+q.xp,0); }
+function getLevel(pct) {
+  for (let i=LEVELS.length-1;i>=0;i--) if(pct>=LEVELS[i][0]) return {num:i+1,title:LEVELS[i][1]};
+  return {num:1,title:LEVELS[0][1]};
+}
+
+function renderQuests() {
+  const xp=getXP(), total=getTotalXP();
+  const pct=total?Math.round(xp/total*100):0;
+  const lv=getLevel(pct);
+  document.getElementById('xp-today').textContent=xp;
+  document.getElementById('xp-total').textContent='/ '+total;
+  document.getElementById('xp-pct').textContent=pct+'%';
+  document.getElementById('xp-fill').style.width=pct+'%';
+  document.getElementById('level-txt').textContent='Lv.'+lv.num;
+  document.getElementById('level-title').textContent=lv.title;
+  const lastW=state.weights.length?state.weights[state.weights.length-1].val:null;
+  document.getElementById('cur-weight').textContent=lastW?lastW.toFixed(1)+'kg':'--';
+  const s=state.streak||0;
+  document.getElementById('streak-txt').textContent=s>0?s+'일 연속':'오늘 시작!';
+
+  const list=document.getElementById('quest-list');
+  list.innerHTML='';
+  allQuests().forEach(q=>{
+    const done=!!state.questDone[q.id];
+    const el=document.createElement('div');
+    el.className='quest-item'+(done?' done':'');
+    el.innerHTML=`
+      <div class="quest-check" onclick="toggleQuest('${q.id}')">${done?'✓':''}</div>
+      <div class="quest-emoji">${q.emoji}</div>
+      <div class="quest-info" onclick="toggleQuest('${q.id}')">
+        <div class="quest-name">${q.name}</div>
+        <div class="quest-desc">${q.desc}</div>
+      </div>
+      <div class="quest-xp">+${q.xp} XP</div>
+      ${q.deletable!==false?`<button class="quest-delete" onclick="deleteQuest('${q.id}')">×</button>`:''}
+    `;
+    list.appendChild(el);
+  });
+
+  const allDone=allQuests().length>0&&allQuests().every(q=>state.questDone[q.id]);
+  document.getElementById('all-done').style.display=allDone?'block':'none';
+  if(allDone && !state.yesterdayAllDone) { state.yesterdayAllDone=true; saveState(state); }
+}
+
+function toggleQuest(id) {
+  state.questDone[id]=!state.questDone[id];
+  saveState(state); renderQuests();
+}
+
+function deleteQuest(id) {
+  state.customQuests=state.customQuests.filter(q=>q.id!==id);
+  delete state.questDone[id];
+  saveState(state); renderQuests();
+}
+
+function toggleAddForm() {
+  const f=document.getElementById('add-form');
+  f.classList.toggle('open');
+  if(f.classList.contains('open')) document.getElementById('new-quest-name').focus();
+}
+
+function addCustomQuest() {
+  const name=document.getElementById('new-quest-name').value.trim();
+  if(!name){alert('퀘스트 이름을 입력해줘!');return;}
+  state.customQuests.push({
+    id:'c_'+Date.now(),
+    name,
+    desc:document.getElementById('new-quest-desc').value.trim()||'나만의 퀘스트',
+    emoji:document.getElementById('new-quest-emoji').value,
+    xp:parseInt(document.getElementById('new-quest-xp').value),
+    deletable:true
+  });
+  saveState(state);
+  document.getElementById('new-quest-name').value='';
+  document.getElementById('new-quest-desc').value='';
+  document.getElementById('add-form').classList.remove('open');
+  renderQuests();
+}
+
+function addWeight() {
+  const v=parseFloat(document.getElementById('weight-in').value);
+  if(!v||v<30||v>200){alert('올바른 체중을 입력해줘 (30~200kg)');return;}
+  const today=todayKey();
+  state.weights=state.weights.filter(w=>w.date!==today);
+  state.weights.push({date:today,val:parseFloat(v.toFixed(1))});
+  state.weights=state.weights.slice(-60);
+  saveState(state);
+  document.getElementById('weight-in').value='';
+  document.getElementById('cur-weight').textContent=v.toFixed(1)+'kg';
+  renderChart(); renderHistory();
+}
+
+function renderChart() {
+  const canvas=document.getElementById('weight-chart');
+  if(!canvas||!state.weights.length) return;
+  const dpr=window.devicePixelRatio||1;
+  const W=canvas.offsetWidth||440, H=160;
+  canvas.width=W*dpr; canvas.height=H*dpr;
+  canvas.style.width=W+'px'; canvas.style.height=H+'px';
+  const ctx=canvas.getContext('2d'); ctx.scale(dpr,dpr);
+  const data=state.weights.slice(-14);
+  const vals=data.map(d=>d.val);
+  const mn=Math.min(...vals)-0.5, mx=Math.max(...vals)+0.5;
+  const pad={l:38,r:14,t:20,b:28};
+  const cw=W-pad.l-pad.r, ch=H-pad.t-pad.b;
+  const xs=data.map((_,i)=>pad.l+(data.length>1?i/(data.length-1):0.5)*cw);
+  const ys=data.map(d=>pad.t+(1-(d.val-mn)/(mx-mn||1))*ch);
+  const isDark=window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const gc=isDark?'rgba(255,255,255,0.08)':'rgba(0,0,0,0.06)';
+  const tc=isDark?'#666660':'#999994';
+  const gr='#639922';
+  for(let i=0;i<=3;i++){
+    const y=pad.t+i*ch/3, val=mx-i*(mx-mn)/3;
+    ctx.strokeStyle=gc; ctx.lineWidth=0.5;
+    ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(W-pad.r,y); ctx.stroke();
+    ctx.fillStyle=tc; ctx.font='10px sans-serif'; ctx.textAlign='right';
+    ctx.fillText(val.toFixed(1),pad.l-4,y+3);
+  }
+  if(data.length<2){ ctx.beginPath(); ctx.arc(xs[0],ys[0],5,0,Math.PI*2); ctx.fillStyle=gr; ctx.fill(); return; }
+  ctx.beginPath(); ctx.moveTo(xs[0],H-pad.b);
+  xs.forEach((x,i)=>ctx.lineTo(x,ys[i]));
+  ctx.lineTo(xs[xs.length-1],H-pad.b); ctx.closePath();
+  ctx.fillStyle=isDark?'rgba(99,153,34,0.15)':'rgba(99,153,34,0.1)'; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(xs[0],ys[0]);
+  for(let i=1;i<xs.length;i++) ctx.lineTo(xs[i],ys[i]);
+  ctx.strokeStyle=gr; ctx.lineWidth=2.5; ctx.lineJoin='round'; ctx.lineCap='round'; ctx.stroke();
+  data.forEach((d,i)=>{
+    ctx.beginPath(); ctx.arc(xs[i],ys[i],4,0,Math.PI*2); ctx.fillStyle=gr; ctx.fill();
+    if(i===0||i===data.length-1||data.length<=7){
+      ctx.fillStyle=tc; ctx.font='10px sans-serif'; ctx.textAlign='center';
+      ctx.fillText(d.date.slice(5).replace('-','/'),xs[i],H-pad.b+16);
+    }
+    if(i===data.length-1){
+      ctx.fillStyle=isDark?'#97C459':'#3B6D11'; ctx.font='600 11px sans-serif'; ctx.textAlign='center';
+      ctx.fillText(d.val.toFixed(1),xs[i],ys[i]-10);
+    }
+  });
+}
+
+function renderHistory() {
+  const el=document.getElementById('weight-history');
+  const sorted=[...state.weights].reverse().slice(0,10);
+  if(!sorted.length){el.innerHTML='<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px;">아직 기록이 없어. 첫 체중을 입력해봐!</div>';return;}
+  el.innerHTML=sorted.map((w,i)=>{
+    const prev=sorted[i+1];
+    const diff=prev?(w.val-prev.val):null;
+    const dh=diff===null?'':`<span class="w-diff ${diff>0?'w-up':'w-down'}">${diff>0?'+':''}${diff.toFixed(1)}kg</span>`;
+    return `<div class="weight-row"><span class="w-date">${w.date.slice(5).replace('-','/')}</span><span class="w-val">${w.val.toFixed(1)} kg</span>${dh}</div>`;
+  }).join('');
+}
+
+function saveApiKey() {
+  const k=document.getElementById('api-key-input').value.trim();
+  if(!k) return;
+  apiKey=k; localStorage.setItem('dq_apikey',k);
+  document.getElementById('api-banner').style.display='none';
+  document.getElementById('api-key-saved').style.display='block';
+}
+
+function setPrompt(txt) {
+  document.getElementById('ai-input').value=txt;
+  document.getElementById('ai-input').focus();
+}
+
+async function sendAI() {
+  const input=document.getElementById('ai-input');
+  const msg=input.value.trim();
+  if(!msg) return;
+  if(!apiKey){alert('AI 분석 탭에서 Anthropic API 키를 먼저 입력해줘!');switchTab('ai');return;}
+  input.value='';
+  const msgs=document.getElementById('ai-msgs');
+  const addMsg=(text,cls)=>{
+    const d=document.createElement('div');
+    d.className='ai-msg '+cls; d.textContent=text;
+    msgs.appendChild(d); msgs.scrollTop=msgs.scrollHeight; return d;
+  };
+  addMsg(msg,'user');
+  const loadDiv=addMsg('분석 중... 🌱','bot loading');
+  aiHistory.push({role:'user',content:msg});
+  const lastW=state.weights.length?state.weights[state.weights.length-1].val:null;
+  const done=allQuests().filter(q=>state.questDone[q.id]).map(q=>q.name).join(', ')||'없음';
+  const xp=getXP(), total=getTotalXP();
+  const system=`너는 친근하고 따뜻한 다이어트 코치 AI야. 사용자는 요요를 반복하고 있어 (63kg→52kg→64kg→58kg). 목표 체중 52kg.
+현재 체중: ${lastW?lastW+'kg':'미기록'}. 오늘 완료 퀘스트: ${done}. 오늘 XP: ${xp}/${total}.
+식단 분석: 1) 칼로리 추정 2) 칭찬 한 가지 3) 개선 팁 한 가지. 비난 금지, 응원 톤으로. 이모지 1-2개. 200자 이내.`;
+  try {
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:400,system,messages:aiHistory})
+    });
+    const data=await res.json();
+    if(data.error) throw new Error(data.error.message);
+    const reply=data.content?.[0]?.text||'분석 실패!';
+    loadDiv.textContent=reply; loadDiv.classList.remove('loading');
+    aiHistory.push({role:'assistant',content:reply});
+  } catch(e) {
+    loadDiv.textContent='오류: '+(e.message||'연결 실패. API 키 확인해봐!');
+    loadDiv.classList.remove('loading');
+  }
+  msgs.scrollTop=msgs.scrollHeight;
+}
+
+// Init
+const now=new Date();
+document.getElementById('date-label').textContent=
+  `${now.getMonth()+1}월 ${now.getDate()}일 ${['일','월','화','수','목','금','토'][now.getDay()]}요일`;
+if(apiKey){ document.getElementById('api-banner').style.display='none'; document.getElementById('api-key-saved').style.display='block'; }
+renderQuests();
+renderHistory();
+window.addEventListener('resize',()=>{ if(document.getElementById('tab-weight').classList.contains('active')) renderChart(); });
+</script>
+</body>
+</html>
